@@ -138,3 +138,41 @@
 .toolbar__import:active {
   transform: scale(0.95);
 }
+
+/* --- Open backup -------------------------------------------------------- */
+
+.toolbar__device {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  height: 30px;
+  padding: 0 10px 0 11px;
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: var(--text-footnote);
+  font-weight: 600;
+  transition: background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring);
+}
+
+.toolbar__device:hover {
+  background: var(--accent-soft-strong);
+}
+
+.toolbar__device:active {
+  transform: scale(0.95);
+}
+
+.toolbar__device span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbar__device-chevron {
+  flex: none;
+  opacity: 0.55;
+  transform: rotate(90deg);
+}

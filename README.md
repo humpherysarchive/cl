@@ -12,10 +12,10 @@ mode, off by default.
 
 ## Status
 
-Interface is built and runnable. Backups — **including encrypted ones** — can
-be opened, and the app reports what each category contains. The per-category
-parsers that turn those files into browsable photos, conversations and records
-are the next piece; category views still show an empty state.
+Backups — **including encrypted ones** — open, and **Photos** is browsable: a
+date-grouped grid of the camera roll with a full-size viewer. The other
+eighteen categories report how many files they hold and still show an empty
+state; Messages is next.
 
 ## Running it
 
@@ -102,6 +102,73 @@ public API, covering the whole chain. They verify the pieces agree with each
 other. **They cannot verify agreement with Apple**; that needs a real backup
 from a real device, which is the next thing to test against.
 
+## Photos
+
+The camera roll comes from `CameraRollDomain`, `Media/DCIM/**`.
+`Media/PhotoData/Photos.sqlite` supplies capture dates, pixel dimensions, and
+which assets are in Recently Deleted — the file listing alone cannot tell you
+that. Videos are left for the Videos category.
+
+The schema moves between iOS releases, so nothing is assumed: the asset table
+is read through `PRAGMA table_info`, it is found under either `ZASSET`
+(iOS 13+) or `ZGENERICASSET` (iOS 10–12), every optional column degrades to
+nothing, and an unreadable database falls back to listing `Media/DCIM` in
+filename order. Values are coerced across SQLite storage classes rather than
+dropped, because a declared column type is only an affinity — silently losing
+`ZTRASHEDSTATE` would put deleted photos back in the grid.
+
+**Originals only.** Edits made in the Photos app live under
+`Media/PhotoData/Mutations/` and are not shown; a cropped or filtered photo
+appears here as it was taken.
+
+### HEIC
+
+WebKitGTK cannot render HEIC, and most of a modern camera roll is HEIC, so it
+is decoded in-process by [`heif-oxide`](https://crates.io/crates/heif-oxide) —
+pure Rust, MIT/Apache-2.0, no C dependency. Measured against libheif on a 12 MP
+10-bit file: RMSE 0.0017 (pixel-identical bar bit-depth rounding), ~400 ms to
+decode, **+339 KB** of binary. A libheif binding would have cost ~1.5 MB plus a
+system package on each of three platforms, a Homebrew path baked into the macOS
+build, and an LGPL dependency in a repository whose license is still open.
+
+JPEG and PNG are never transcoded — the webview renders them from the original
+bytes.
+
+### Thumbnails
+
+Decoding is far too slow to do for a whole library up front, so thumbnails are
+produced only for the cells the grid actually shows, from the cheapest source
+available:
+
+1. the on-disk cache,
+2. a JPEG derivative iOS already wrote into the backup under
+   `Media/PhotoData/Thumbnails/V2/`, when the backup carries one — that turns a
+   HEVC decode into a file read,
+3. decoding the original.
+
+The cache lives in the OS cache directory (`~/.cache/org.humpherysarchive.cl/thumbnails/<backup>/`
+on Linux), **never in the backup folder**, namespaced per backup because a file
+id is only unique within one device. It is capped at 200 MB, evicted
+oldest-first, and clearable from **Settings → Advanced**, which also shows the
+exact location.
+
+Concurrent decodes are capped at one fewer than the core count (max 4), so
+scrolling fast through a large roll cannot leave an old machine thrashing.
+Cache hits never take a slot.
+
+### Streaming
+
+Images reach the webview over an `archive://` URI scheme, not IPC:
+`archive://localhost/thumb/<fileId>` and `/full/<fileId>` (Windows serves the
+same routes over `http://archive.localhost`). A 12 MP photo is several
+megabytes, and base64 over IPC would inflate it by a third and hold the whole
+string in memory on both sides. Requested ids must be 40 hex characters, which
+keeps path separators out of cache filenames.
+
+The grid is windowed by hand rather than with a virtualization library: row
+heights are known up front, so finding the first visible row is a binary search
+and only what is on screen is ever in the DOM.
+
 ## Platforms
 
 | Target | Bundle | Notes |
@@ -121,14 +188,18 @@ src/
   lib/categories.ts    The 19 data classes and their sidebar grouping
   lib/settings.tsx     Settings store, theme resolution, persistence
   lib/backup.ts        Typed wrappers over the Rust commands
+  lib/session.tsx      Which backup is open; remembers the path, never the password
   components/          Sidebar, Toolbar, Toggle, ImportSheet, SettingsSheet
-  views/               Per-category views
+  views/               Per-category views (PhotosView is windowed by hand)
   styles/              Tokens, shared sheet chrome, global styles
 src-tauri/
   src/ios/crypto.rs    RFC 3394 key unwrap, AES-256-CBC
   src/ios/keybag.rs    Keybag parsing, key derivation, class keys
   src/ios/manifest.rs  Manifest.plist, Manifest.db, per-file key records
   src/ios/mod.rs       Opening a backup; domain -> category routing
+  src/ios/photos.rs    Photos.sqlite, schema-tolerant
+  src/ios/thumbs.rs    Decoding, scaling, and the thumbnail cache
+  src/protocol.rs      The archive:// image scheme
   src/lib.rs           Tauri commands
 ```
 
@@ -146,9 +217,10 @@ npm run screenshot  # render the UI to PNGs without a full build
 - **Sidebar** — show or hide the sidebar, and toggle each of the 19 categories
   individually. Hiding a category only changes what's displayed; nothing is
   deleted.
-- **Advanced** — a single Developer mode switch. Turning it on reveals verbose
-  logging, raw backup paths, temp-file retention and parser thread count. A
-  normal user never sees these.
+- **Advanced** — the thumbnail cache's size, location and a Clear button, plus
+  a single Developer mode switch. Turning that on reveals verbose logging, raw
+  backup paths, temp-file retention and parser thread count. A normal user
+  never sees these.
 
 `Ctrl`/`Cmd` + `,` opens Settings.
 
@@ -159,8 +231,9 @@ npm run screenshot  # render the UI to PNGs without a full build
 - [x] Encrypted-backup keybag, key derivation and file decryption
 - [x] Import flow: pick a folder, identify the phone, unlock, count what's there
 - [x] Cross-platform bundles (Debian/Ubuntu, Windows, macOS) in CI
+- [x] Photos: date-grouped grid, HEIC decoding, cached thumbnails, full-size viewer
 - [ ] Verify against a real encrypted backup from a device
-- [ ] Per-category parsers (Photos, Messages, Contacts, Notes, Calendar, Health, …)
+- [ ] Messages, then the remaining categories
 - [ ] Export to open formats (JSON, CSV, vCard, ICS, plain image files)
 - [ ] Bootable Debian live image for recovery on a machine with no working OS
 

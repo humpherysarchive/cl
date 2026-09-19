@@ -1,0 +1,125 @@
+.photos {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  animation: view-enter var(--dur-base) var(--ease-spring) both;
+}
+
+:root[data-reduce-motion="true"] .photos {
+  animation: view-fade var(--dur-fast) var(--ease-out) both;
+}
+
+.photos__header {
+  flex: none;
+  padding: 8px 24px 14px;
+}
+
+.photos__title {
+  font: var(--text-large-title);
+  letter-spacing: -0.021em;
+  color: var(--label);
+}
+
+.photos__subtitle {
+  font: var(--text-callout);
+  color: var(--label-secondary);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.photos__error {
+  margin: 0 24px 12px;
+  padding: 9px 13px;
+  font: var(--text-footnote);
+  color: #ff3b30;
+  background: rgba(255, 59, 48, 0.1);
+  border-radius: var(--r-md);
+}
+
+:root[data-theme="dark"] .photos__error {
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.14);
+}
+
+.photos__scroll {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  /* Tells the compositor this scrolls, which keeps large canvases smooth. */
+  will-change: scroll-position;
+}
+
+/* A single spacer of the full content height carries the scrollbar; rows are
+   absolutely positioned into it so only the visible ones exist in the DOM. */
+.photos__canvas {
+  position: relative;
+  width: 100%;
+}
+
+.photos__day {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px;
+  font: var(--text-headline);
+  color: var(--label);
+}
+
+.photos__day small {
+  font: var(--text-footnote);
+  color: var(--label-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.photos__row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+}
+
+.cell {
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--fill-quaternary);
+  padding: 0;
+  /* Cheap press feedback that does not trigger layout. */
+  transition: transform var(--dur-fast) var(--ease-spring),
+    opacity var(--dur-fast) var(--ease-out);
+}
+
+.cell:hover {
+  opacity: 0.86;
+}
+
+.cell:active {
+  transform: scale(0.96);
+}
+
+.cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Thumbnails arrive one at a time; fading in avoids a flicker of grey. */
+  animation: cell-in var(--dur-fast) var(--ease-out) both;
+}
+
+:root[data-reduce-motion="true"] .cell img {
+  animation: none;
+}
+
+@keyframes cell-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

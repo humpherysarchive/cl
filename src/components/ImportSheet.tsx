@@ -8,6 +8,7 @@ import {
   type BackupSummary,
   type OpenedBackup,
 } from "../lib/backup";
+import { useSession } from "../lib/session";
 import { Icon } from "./Icon";
 import "./ImportSheet.css";
 
@@ -23,6 +24,7 @@ interface ImportSheetProps {
 }
 
 export function ImportSheet({ open, onClose }: ImportSheetProps) {
+  const { remembered, setOpened, close, forget } = useSession();
   const [stage, setStage] = useState<Stage>({ name: "choose" });
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -52,14 +54,31 @@ export function ImportSheet({ open, onClose }: ImportSheetProps) {
     try {
       const path = await chooseFolder();
       if (!path) return;
-      const summary = await inspectBackup(path);
-      if (!summary) {
-        setError("That folder isn't an iPhone backup. Look for one containing Manifest.plist.");
-        return;
-      }
-      setStage({ name: "found", summary });
+      await load(path);
     } catch (e) {
       setError(String(e));
+    }
+  }
+
+  /** Inspect a folder and move to the confirmation step. */
+  async function load(path: string) {
+    const summary = await inspectBackup(path);
+    if (!summary) {
+      setError("That folder isn't an iPhone backup. Look for one containing Manifest.plist.");
+      return;
+    }
+    // Opening a different backup replaces the current one.
+    await close();
+    setStage({ name: "found", summary });
+  }
+
+  async function reopen(path: string) {
+    setError(null);
+    try {
+      await load(path);
+    } catch (e) {
+      setError(String(e));
+      forget();
     }
   }
 
@@ -69,6 +88,7 @@ export function ImportSheet({ open, onClose }: ImportSheetProps) {
     try {
       const result = await openBackup(summary.path, password);
       setPassword(""); // don't keep it in memory once it has been used
+      setOpened(summary, result);
       setStage({ name: "done", summary, result });
     } catch (e) {
       setError(String(e));
@@ -117,14 +137,32 @@ export function ImportSheet({ open, onClose }: ImportSheetProps) {
                 <dt>Windows</dt>
                 <dd>%APPDATA%\Apple\MobileSync\Backup</dd>
               </dl>
+              {remembered && inTauri && (
+                /* The folder is remembered between launches; the backup
+                   password never is, so an encrypted backup asks again. */
+                <button
+                  type="button"
+                  className="import__recent"
+                  tabIndex={open ? 0 : -1}
+                  onClick={() => reopen(remembered.path)}
+                >
+                  <Icon name="device" size={17} />
+                  <span>
+                    <b>{remembered.deviceName ?? "Last backup"}</b>
+                    <small>{remembered.path}</small>
+                  </span>
+                  <Icon name="chevron" size={13} />
+                </button>
+              )}
+
               <button
                 type="button"
-                className="btn btn--primary"
+                className={remembered && inTauri ? "btn btn--quiet" : "btn btn--primary"}
                 tabIndex={open ? 0 : -1}
                 disabled={!inTauri}
                 onClick={pick}
               >
-                Choose folder
+                Choose {remembered && inTauri ? "another" : ""} folder
               </button>
               {!inTauri && (
                 /* `vite dev` in a browser tab has no file picker and no

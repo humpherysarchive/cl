@@ -1,6 +1,7 @@
 import { CATEGORY_MAP, type CategoryId } from "../lib/categories";
 import { useSettings } from "../lib/settings";
 import { Icon } from "./../components/Icon";
+import { PhotosView } from "./PhotosView";
 import "./CategoryView.css";
 
 interface CategoryViewProps {
@@ -11,6 +12,11 @@ interface CategoryViewProps {
 export function CategoryView({ id, onImport }: CategoryViewProps) {
   const cat = CATEGORY_MAP[id];
   const { settings } = useSettings();
+
+  // Categories gain real views one at a time; the rest keep the empty state.
+  if (id === "photos") {
+    return <PhotosView onImport={onImport} />;
+  }
 
   return (
     /* Keyed on `id` in App so React remounts and replays the enter animation. */

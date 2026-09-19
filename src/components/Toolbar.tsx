@@ -1,3 +1,4 @@
+import { useSession } from "../lib/session";
 import { useSettings } from "../lib/settings";
 import { Icon } from "./Icon";
 import "./Toolbar.css";
@@ -8,6 +9,7 @@ interface ToolbarProps {
 
 export function Toolbar({ onImport }: ToolbarProps) {
   const { settings, set, resolvedTheme } = useSettings();
+  const { device } = useSession();
 
   return (
     /* data-tauri-drag-region makes the empty space behave like a title bar. */
@@ -42,10 +44,25 @@ export function Toolbar({ onImport }: ToolbarProps) {
         </span>
       </button>
 
-      <button type="button" className="toolbar__import" onClick={onImport}>
-        <Icon name="import" size={15} />
-        Import
-      </button>
+      {/* Once a backup is open the button says which phone it is, and acts as
+          the way to switch to another one. */}
+      {device ? (
+        <button
+          type="button"
+          className="toolbar__device"
+          onClick={onImport}
+          title={device.path}
+        >
+          <Icon name="device" size={15} />
+          <span>{device.deviceName ?? "iPhone"}</span>
+          <Icon name="chevron" size={12} className="toolbar__device-chevron" />
+        </button>
+      ) : (
+        <button type="button" className="toolbar__import" onClick={onImport}>
+          <Icon name="import" size={15} />
+          Import
+        </button>
+      )}
     </div>
   );
 }

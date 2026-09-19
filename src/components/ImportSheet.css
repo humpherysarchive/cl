@@ -281,3 +281,66 @@
 .import__paths dd + dt {
   margin-top: 9px;
 }
+
+/* --- Reopen the last backup -------------------------------------------- */
+
+.import__recent {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 11px 13px;
+  text-align: left;
+  background: var(--bg-raised);
+  border: 1px solid var(--separator);
+  border-radius: var(--r-lg);
+  color: var(--accent);
+  transition: background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring);
+}
+
+.import__recent:hover {
+  background: var(--fill-quaternary);
+}
+
+.import__recent:active {
+  transform: scale(0.985);
+}
+
+.import__recent > span {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.import__recent b {
+  font: var(--text-headline);
+  color: var(--label);
+}
+
+.import__recent small {
+  font: var(--text-footnote);
+  color: var(--label-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl; /* keep the folder name visible when the path is long */
+  text-align: left;
+}
+
+.import__recent > svg:last-child {
+  flex: none;
+  opacity: 0.5;
+}
+
+.btn--quiet {
+  margin-top: 10px;
+  color: var(--accent);
+}
+
+.btn--quiet:hover {
+  background: var(--fill-quaternary);
+}

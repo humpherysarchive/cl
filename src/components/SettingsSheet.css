@@ -224,3 +224,8 @@
   overflow: hidden;
   min-height: 0;
 }
+
+.group__action:disabled {
+  color: var(--label-tertiary);
+  cursor: default;
+}

@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { cacheInfo, clearCache, type CacheInfo } from "../lib/backup";
 import { CATEGORIES, GROUPS } from "../lib/categories";
 import { useSettings, type ThemeChoice } from "../lib/settings";
 import { Icon } from "./Icon";
@@ -19,6 +20,20 @@ interface SettingsSheetProps {
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const { settings, set, toggleCategory, setAllCategories, reset } = useSettings();
   const sheetRef = useRef<HTMLDivElement>(null);
+  const [cache, setCache] = useState<CacheInfo | null>(null);
+  const [clearing, setClearing] = useState(false);
+
+  const refreshCache = useCallback(() => {
+    cacheInfo()
+      .then(setCache)
+      .catch(() => setCache(null));
+  }, []);
+
+  // Read the size when the sheet opens rather than on every render, so the
+  // directory is not walked while the user is scrolling.
+  useEffect(() => {
+    if (open) refreshCache();
+  }, [open, refreshCache]);
 
   useEffect(() => {
     if (!open) return;
@@ -143,8 +158,40 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
           <Group
             title="Advanced"
-            footer="Only turn this on if someone walking you through a problem asks you to."
+            footer={
+              cache
+                ? `Thumbnails are kept in ${cache.location}, never in the backup folder. They rebuild automatically.`
+                : "Only turn on Developer mode if someone walking you through a problem asks you to."
+            }
           >
+            <Row
+              label="Thumbnail cache"
+              icon="photos"
+              detail={
+                cache
+                  ? `${formatBytes(cache.bytes)} of ${formatBytes(cache.limit)} used`
+                  : "Not available until a backup is open."
+              }
+            >
+              <button
+                type="button"
+                className="group__action"
+                tabIndex={open ? 0 : -1}
+                disabled={!cache || cache.bytes === 0 || clearing}
+                onClick={async () => {
+                  setClearing(true);
+                  try {
+                    await clearCache();
+                  } finally {
+                    setClearing(false);
+                    refreshCache();
+                  }
+                }}
+              >
+                {clearing ? "Clearing…" : "Clear"}
+              </button>
+            </Row>
+
             <Row label="Developer mode" icon="wrench">
               <Toggle
                 label="Developer mode"
@@ -208,6 +255,18 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   );
 }
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ["KB", "MB", "GB"];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
+}
+
 function Group({
   title,
   footer,
@@ -215,7 +274,7 @@ function Group({
   children,
 }: {
   title?: string;
-  footer?: string;
+  footer?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
 }) {

@@ -14,14 +14,19 @@
 mod crypto;
 mod keybag;
 mod manifest;
+mod photos;
+pub mod thumbs;
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use serde::Serialize;
 
 use keybag::UnlockedKeybag;
 pub use manifest::{BackupFile, DeviceInfo};
 use manifest::{Manifest, ManifestPlist};
+pub use photos::Photo;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -52,6 +57,9 @@ pub enum Error {
 
     #[error("{0}")]
     Crypto(&'static str),
+
+    #[error("{0}")]
+    Decode(&'static str),
 
     /// Internal: an RFC 3394 integrity check failed. Callers turn this into
     /// [`Error::WrongPassword`] where that is what it means.
@@ -96,6 +104,30 @@ pub struct Backup {
     root: PathBuf,
     files: Vec<BackupFile>,
     keybag: Option<UnlockedKeybag>,
+    /// Position in `files` by file id, so the streaming protocol can resolve a
+    /// request without scanning tens of thousands of entries per image.
+    by_id: HashMap<String, usize>,
+    /// Built on first use and kept: every thumbnail request needs to look a
+    /// photo up, and rebuilding it would mean re-reading Photos.sqlite.
+    photo_index: OnceLock<PhotoIndex>,
+}
+
+/// The camera roll in display order, plus a lookup by file id.
+#[derive(Default)]
+struct PhotoIndex {
+    list: Vec<Photo>,
+    by_id: HashMap<String, usize>,
+}
+
+impl PhotoIndex {
+    fn new(list: Vec<Photo>) -> Self {
+        let by_id = list
+            .iter()
+            .enumerate()
+            .map(|(i, p)| (p.id.clone(), i))
+            .collect();
+        PhotoIndex { list, by_id }
+    }
 }
 
 /// Written by hand rather than derived: this struct holds decrypted class
@@ -131,10 +163,18 @@ impl Backup {
         };
 
         let manifest = Manifest::read(path, &plist, keybag.as_ref())?;
+        let by_id = manifest
+            .files
+            .iter()
+            .enumerate()
+            .map(|(i, f)| (f.file_id.clone(), i))
+            .collect();
         Ok(Backup {
             root: path.to_path_buf(),
             files: manifest.files,
             keybag,
+            by_id,
+            photo_index: OnceLock::new(),
         })
     }
 
@@ -162,6 +202,84 @@ impl Backup {
         }
     }
 
+    /// A stable identifier for this backup, used to namespace cached
+    /// thumbnails. A file id is only unique within one device's backup, so
+    /// caching by file id alone would let two phones collide.
+    pub fn cache_key(&self) -> String {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(self.root.as_os_str().as_encoded_bytes());
+        digest[..8].iter().map(|b| format!("{b:02x}")).collect()
+    }
+
+    /// Read and decrypt one file by its id.
+    pub fn read_by_id(&self, file_id: &str) -> Result<Vec<u8>, Error> {
+        let index = *self
+            .by_id
+            .get(file_id)
+            .ok_or(Error::Decode("that item is not in this backup"))?;
+        self.read_file(&self.files[index])
+    }
+
+    /// The camera roll, newest first.
+    ///
+    /// `Photos.sqlite` is staged into a temporary directory alongside its
+    /// write-ahead log, because a backup taken while the Photos app was
+    /// running can leave recent rows in the WAL rather than the main file.
+    /// The directory is removed as soon as the rows are read; no plaintext
+    /// goes near the backup folder.
+    pub fn photos(&self) -> Result<&[Photo], Error> {
+        if self.photo_index.get().is_none() {
+            // Surface a first-run failure to the caller rather than caching an
+            // empty roll; later lookups fall back to empty on their own.
+            let list = self.build_photos()?;
+            let _ = self.photo_index.set(PhotoIndex::new(list));
+        }
+        Ok(&self.photo_index.get().expect("just initialised").list)
+    }
+
+    /// One photo by its file id, for the streaming protocol.
+    pub fn photo_by_id(&self, file_id: &str) -> Option<&Photo> {
+        let index = self
+            .photo_index
+            .get_or_init(|| PhotoIndex::new(self.build_photos().unwrap_or_default()));
+        index.by_id.get(file_id).map(|i| &index.list[*i])
+    }
+
+    fn build_photos(&self) -> Result<Vec<Photo>, Error> {
+        let staged = self.stage_sqlite("CameraRollDomain", "Media/PhotoData/Photos.sqlite")?;
+        let result = photos::list(&self.files, staged.as_ref().map(|(_, p)| p.as_path()));
+        drop(staged); // removes the plaintext copy
+        result
+    }
+
+    /// Copy a SQLite database out of the backup into a temporary directory,
+    /// together with any `-wal` and `-shm` siblings. Returns `None` when the
+    /// database is not in this backup.
+    fn stage_sqlite(
+        &self,
+        domain: &str,
+        path: &str,
+    ) -> Result<Option<(tempfile::TempDir, PathBuf)>, Error> {
+        let Some(main) = self.find(domain, path) else {
+            return Ok(None);
+        };
+        let name = path.rsplit('/').next().unwrap_or(path);
+        let dir = tempfile::Builder::new().prefix("cl-db-").tempdir()?;
+        let target = dir.path().join(name);
+        std::fs::write(&target, self.read_file(main)?)?;
+
+        for suffix in ["-wal", "-shm"] {
+            let sibling = format!("{path}{suffix}");
+            if let Some(file) = self.find(domain, &sibling) {
+                if let Ok(bytes) = self.read_file(file) {
+                    let _ = std::fs::write(dir.path().join(format!("{name}{suffix}")), bytes);
+                }
+            }
+        }
+
+        Ok(Some((dir, target)))
+    }
+
     /// Locate one file by the domain and path it had on the phone.
     pub fn find(&self, domain: &str, relative_path: &str) -> Option<&BackupFile> {
         self.files
@@ -171,7 +289,7 @@ impl Backup {
 
     /// How many files each category has, for the import screen.
     pub fn category_counts(&self) -> Vec<CategoryCount> {
-        let mut counts: std::collections::HashMap<&'static str, u64> = Default::default();
+        let mut counts: HashMap<&'static str, u64> = Default::default();
         for file in &self.files {
             if file.is_directory {
                 continue;

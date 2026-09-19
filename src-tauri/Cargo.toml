@@ -1,6 +1,6 @@
 [package]
 name = "cl"
-version = "0.1.1"
+version = "0.1.2"
 description = "Import and browse an iPhone's data on a desktop."
 edition = "2021"
 rust-version = "1.77"
@@ -33,6 +33,12 @@ sha2 = "0.10"
 zeroize = { version = "1", features = ["derive"] }
 thiserror = "2"
 tempfile = "3"
+
+# Photo decoding. heif-oxide is pure Rust (MIT/Apache-2.0) and pulls in no C
+# library, so CI is unchanged on all three platforms; measured cost is +339 KB
+# against a libheif binding's ~1.5 MB plus a system package per platform.
+heif-oxide = "0.1"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 
 [profile.release]
 # Tuned for the live-USB build: small binary, no debug symbols, LTO on.
