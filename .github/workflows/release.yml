@@ -69,6 +69,18 @@ jobs:
 
       - run: npm ci
 
+      # Read from the repository rather than inlining here, so the notes are
+      # updated in the same commit as the change they describe.
+      - name: Read release notes
+        id: notes
+        shell: bash
+        run: |
+          {
+            echo 'body<<RELEASE_NOTES_EOF'
+            cat .github/RELEASE_NOTES.md
+            echo 'RELEASE_NOTES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
@@ -81,37 +93,4 @@ jobs:
           # written yet, so this is not a general-audience build.
           prerelease: true
           args: ${{ matrix.args }}
-          releaseBody: |
-            Desktop app for importing an iPhone's data — including **encrypted**
-            backups.
-
-            ### What works
-            - Opening a backup, encrypted or not, and identifying the phone
-            - Backup password: keybag parsing, key derivation, RFC 3394 unwrap,
-              AES-256-CBC decryption of `Manifest.db` and file contents
-            - Per-category file counts across the 19 data classes
-
-            ### What doesn't yet
-            Per-category parsers. The app tells you how many photos, messages
-            and so on the backup holds, but the category views still show an
-            empty state — it doesn't render the contents.
-
-            ### Install
-
-            **Debian / Ubuntu**
-            ```sh
-            sudo apt install ./Archive_*_amd64.deb
-            ```
-            Or take the `.AppImage`, `chmod +x` it, and run it in place.
-
-            **macOS** — the app is not code-signed or notarised, so Gatekeeper
-            will refuse it until you clear the quarantine flag:
-            ```sh
-            xattr -dr com.apple.quarantine /Applications/Archive.app
-            ```
-
-            **Windows** — SmartScreen will warn for the same reason. Choose
-            *More info* → *Run anyway*.
-
-            Nothing leaves your machine: the app has no network access and
-            reads only the backup folder you point it at.
+          releaseBody: ${{ steps.notes.outputs.body }}
