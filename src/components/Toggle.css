@@ -1,0 +1,52 @@
+.toggle {
+  position: relative;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  border-radius: var(--r-pill);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.toggle__track {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--fill-secondary);
+  transition: background-color var(--dur-base) var(--ease-out);
+}
+
+.toggle[aria-checked="true"] .toggle__track {
+  background: var(--accent);
+}
+
+.toggle__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: var(--r-pill);
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15), 0 1px 1px rgba(0, 0, 0, 0.16);
+  /* `left`+`width` rather than transform so the press-stretch reads correctly
+     from whichever side the knob is resting on. */
+  transition: left var(--dur-base) var(--ease-spring),
+    width var(--dur-fast) var(--ease-out);
+}
+
+.toggle[aria-checked="true"] .toggle__knob {
+  left: 22px;
+}
+
+.toggle:not(:disabled):active .toggle__knob {
+  width: 33px;
+}
+
+.toggle[aria-checked="true"]:not(:disabled):active .toggle__knob {
+  left: 16px;
+}

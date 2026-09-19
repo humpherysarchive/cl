@@ -1,0 +1,34 @@
+.app {
+  display: flex;
+  height: 100%;
+  background: var(--bg);
+}
+
+/* Collapsing by width keeps the content pane sliding rather than jumping. */
+.app__sidebar {
+  flex: none;
+  width: var(--sidebar-w);
+  overflow: hidden;
+  transition: width var(--dur-base) var(--ease-spring);
+}
+
+.app__sidebar[data-visible="false"] {
+  width: 0;
+}
+
+.app__sidebar > * {
+  height: 100%;
+}
+
+.app__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app__content {
+  flex: 1;
+  min-height: 0;
+  padding-top: 18px;
+}

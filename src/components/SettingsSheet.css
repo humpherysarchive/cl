@@ -1,0 +1,338 @@
+/* --- Sheet chrome ------------------------------------------------------- */
+
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.sheet-layer[data-open="true"] {
+  pointer-events: auto;
+}
+
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-overlay);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  cursor: default;
+}
+
+.sheet-layer[data-open="true"] .sheet-scrim {
+  opacity: 1;
+}
+
+.sheet {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(560px, 100%);
+  height: min(86%, 760px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-sunken);
+  border: 1px solid var(--separator);
+  border-bottom: none;
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: var(--shadow-sheet);
+  /* Slide up from off-screen on the iOS sheet curve. */
+  transform: translate(-50%, 100%);
+  transition: transform var(--dur-slow) var(--ease-spring);
+}
+
+.sheet-layer[data-open="true"] .sheet {
+  transform: translate(-50%, 0);
+}
+
+.sheet__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  flex: none;
+  border-bottom: 1px solid var(--separator);
+}
+
+.sheet__grabber {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 5px;
+  border-radius: var(--r-pill);
+  background: var(--fill-secondary);
+}
+
+.sheet__title {
+  font: var(--text-title);
+  color: var(--accent);
+  margin-top: 6px;
+}
+
+.sheet__close {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  margin-top: 3px;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  background: var(--fill-tertiary);
+  color: var(--label-secondary);
+  transition: background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring);
+}
+
+.sheet__close:hover {
+  background: var(--fill-secondary);
+}
+
+.sheet__close:active {
+  transform: translateY(-50%) scale(0.9);
+}
+
+.sheet__body {
+  flex: 1;
+  padding: 18px 18px 28px;
+}
+
+.sheet__version {
+  font: var(--text-footnote);
+  color: var(--label-tertiary);
+  text-align: center;
+  margin-top: 22px;
+}
+
+/* --- Grouped inset list ------------------------------------------------- */
+
+.group + .group,
+.reveal + .group {
+  margin-top: 22px;
+}
+
+.group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px 7px;
+}
+
+.group__title {
+  font: var(--text-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-tertiary);
+}
+
+.group__action {
+  font: var(--text-footnote);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.group__action:hover {
+  color: var(--accent-hover);
+}
+
+.group__card {
+  background: var(--bg-raised);
+  border: 1px solid var(--separator);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.group__footer {
+  font: var(--text-footnote);
+  color: var(--label-tertiary);
+  padding: 7px 14px 0;
+  text-wrap: pretty;
+}
+
+.group__subhead {
+  font: var(--text-caption);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--label-tertiary);
+  background: var(--fill-quaternary);
+  padding: 6px 14px;
+  border-top: 1px solid var(--separator);
+}
+
+.group__card > .group__subhead:first-child {
+  border-top: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 14px;
+  min-height: 48px;
+}
+
+.row + .row {
+  border-top: 1px solid var(--separator);
+}
+
+.row__icon {
+  flex: none;
+  color: var(--accent);
+}
+
+.row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.row__label {
+  font: var(--text-body);
+  font-weight: 500;
+}
+
+.row__detail {
+  font: var(--text-footnote);
+  color: var(--label-secondary);
+  text-wrap: pretty;
+}
+
+.row__control {
+  flex: none;
+}
+
+.row--button {
+  width: 100%;
+  justify-content: center;
+  font: var(--text-body);
+  font-weight: 500;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.row--button:hover {
+  background: var(--fill-quaternary);
+}
+
+.row--danger {
+  color: #ff3b30;
+}
+
+:root[data-theme="dark"] .row--danger {
+  color: #ff453a;
+}
+
+/* --- Segmented control -------------------------------------------------- */
+
+.segmented {
+  --seg-count: 3;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--seg-count), 1fr);
+  gap: 0;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--fill-tertiary);
+  width: 186px;
+}
+
+.segmented__pill {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / var(--seg-count));
+  height: calc(100% - 4px);
+  border-radius: 7px;
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-card);
+  transform: translateX(calc(var(--seg-index) * 100%));
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+
+.segmented__option {
+  position: relative;
+  z-index: 1;
+  padding: 5px 0;
+  font: var(--text-footnote);
+  font-weight: 500;
+  color: var(--label-secondary);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.segmented__option[aria-pressed="true"] {
+  color: var(--label);
+  font-weight: 600;
+}
+
+/* --- Stepper ------------------------------------------------------------ */
+
+.stepper {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  background: var(--fill-tertiary);
+  overflow: hidden;
+}
+
+.stepper button {
+  width: 34px;
+  height: 30px;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--label);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.stepper button:hover:not(:disabled) {
+  background: var(--fill-secondary);
+}
+
+.stepper button:disabled {
+  color: var(--label-tertiary);
+  cursor: default;
+}
+
+.stepper__value {
+  min-width: 30px;
+  text-align: center;
+  font: var(--text-footnote);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid var(--separator);
+  border-right: 1px solid var(--separator);
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+}
+
+/* --- Developer reveal --------------------------------------------------- */
+
+/* grid-template-rows 0fr -> 1fr animates height without a magic pixel value. */
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0;
+  transition: grid-template-rows var(--dur-base) var(--ease-spring),
+    opacity var(--dur-fast) var(--ease-out),
+    margin-top var(--dur-base) var(--ease-spring);
+}
+
+.reveal[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 22px;
+}
+
+.reveal__inner {
+  overflow: hidden;
+  min-height: 0;
+}

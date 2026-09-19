@@ -1,0 +1,96 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-w);
+  flex: none;
+  background: var(--bg-sidebar);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-right: 1px solid var(--separator);
+}
+
+.sidebar__scroll {
+  flex: 1;
+  padding: 10px 10px 4px;
+}
+
+.sidebar__group + .sidebar__group {
+  margin-top: 18px;
+}
+
+.sidebar__group-title {
+  font: var(--text-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--label-tertiary);
+  padding: 0 10px 6px;
+}
+
+.sidebar__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--r-md);
+  font: var(--text-headline);
+  font-weight: 500;
+  color: var(--label);
+  /* The press-shrink is what makes this feel like a phone rather than a form. */
+  transition: background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring);
+}
+
+.sidebar__item:hover {
+  background: var(--fill-quaternary);
+}
+
+.sidebar__item:active {
+  transform: scale(0.97);
+  background: var(--fill-tertiary);
+}
+
+.sidebar__item[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar__icon {
+  flex: none;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+.sidebar__item[aria-current="page"] .sidebar__icon {
+  opacity: 1;
+}
+
+.sidebar__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__empty {
+  font: var(--text-footnote);
+  color: var(--label-tertiary);
+  padding: 20px 12px;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.sidebar__footer {
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--separator);
+}
