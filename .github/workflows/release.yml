@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build and publish (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Every platform is published independently: one failing runner should
+      # not withhold the bundles that did build.
+      fail-fast: false
+      matrix:
+        include:
+          # Built on 22.04 rather than the newest image on purpose. The binary
+          # links against that runner's glibc, and an older one keeps it
+          # runnable on the 2014-era machines this is meant to rescue.
+          - name: Linux (deb, AppImage)
+            os: ubuntu-22.04
+            args: --bundles deb,appimage
+          - name: Windows (installer)
+            os: windows-latest
+            args: --bundles nsis
+          - name: macOS (Apple silicon)
+            os: macos-latest
+            args: --bundles dmg --target aarch64-apple-darwin
+            target: aarch64-apple-darwin
+          - name: macOS (Intel)
+            os: macos-13
+            args: --bundles dmg --target x86_64-apple-darwin
+            target: x86_64-apple-darwin
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          key: ${{ matrix.os }}
+
+      # Tauri renders through the system webview; without these headers the
+      # Rust build fails at pkg-config rather than at compile time.
+      - name: Install system dependencies
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libxdo-dev \
+            libssl-dev librsvg2-dev pkg-config
+
+      - run: npm ci
+
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: Archive ${{ github.event.inputs.tag || github.ref_name }}
+          releaseDraft: false
+          # Nothing here is code-signed and the per-category parsers are not
+          # written yet, so this is not a general-audience build.
+          prerelease: true
+          args: ${{ matrix.args }}
+          releaseBody: |
+            Desktop app for importing an iPhone's data — including **encrypted**
+            backups.
+
+            ### What works
+            - Opening a backup, encrypted or not, and identifying the phone
+            - Backup password: keybag parsing, key derivation, RFC 3394 unwrap,
+              AES-256-CBC decryption of `Manifest.db` and file contents
+            - Per-category file counts across the 19 data classes
+
+            ### What doesn't yet
+            Per-category parsers. The app tells you how many photos, messages
+            and so on the backup holds, but the category views still show an
+            empty state — it doesn't render the contents.
+
+            ### Install
+
+            **Debian / Ubuntu**
+            ```sh
+            sudo apt install ./Archive_*_amd64.deb
+            ```
+            Or take the `.AppImage`, `chmod +x` it, and run it in place.
+
+            **macOS** — the app is not code-signed or notarised, so Gatekeeper
+            will refuse it until you clear the quarantine flag:
+            ```sh
+            xattr -dr com.apple.quarantine /Applications/Archive.app
+            ```
+
+            **Windows** — SmartScreen will warn for the same reason. Choose
+            *More info* → *Run anyway*.
+
+            Nothing leaves your machine: the app has no network access and
+            reads only the backup folder you point it at.
