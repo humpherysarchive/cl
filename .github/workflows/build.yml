@@ -69,12 +69,10 @@ jobs:
           - name: Windows (installer)
             os: windows-latest
             args: --bundles nsis
-          - name: macOS (Apple silicon)
+          # Universal binary; the macos-13 Intel runners are being retired.
+          - name: macOS (universal)
             os: macos-latest
-            args: --bundles dmg --target aarch64-apple-darwin
-          - name: macOS (Intel)
-            os: macos-13
-            args: --bundles dmg --target x86_64-apple-darwin
+            args: --bundles dmg --target universal-apple-darwin
 
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +84,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin' || matrix.os == 'macos-13' && 'x86_64-apple-darwin' || '' }}
+          targets: ${{ startsWith(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - uses: Swatinem/rust-cache@v2
         with:
