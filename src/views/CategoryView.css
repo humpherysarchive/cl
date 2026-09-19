@@ -35,7 +35,7 @@
 .view__title {
   font: var(--text-large-title);
   letter-spacing: -0.021em;
-  color: var(--accent);
+  color: var(--label);
 }
 
 .view__subtitle {
@@ -114,34 +114,4 @@
   border-radius: var(--r-sm);
   user-select: text;
   -webkit-user-select: text;
-}
-
-/* --- Buttons ------------------------------------------------------------ */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  padding: 9px 16px;
-  border-radius: var(--r-pill);
-  font: var(--text-body);
-  font-weight: 600;
-  transition: background-color var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-spring);
-}
-
-.btn:active {
-  transform: scale(0.96);
-}
-
-.btn--primary {
-  margin-top: 20px;
-  background: var(--accent);
-  color: var(--label-on-accent);
-  box-shadow: var(--shadow-card);
-}
-
-.btn--primary:hover {
-  background: var(--accent-hover);
 }

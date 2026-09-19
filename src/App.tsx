@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
+import { ImportSheet } from "./components/ImportSheet";
 import { SettingsSheet } from "./components/SettingsSheet";
 import { Toolbar } from "./components/Toolbar";
 import { CategoryView } from "./views/CategoryView";
@@ -11,6 +12,7 @@ export function App() {
   const { settings } = useSettings();
   const [active, setActive] = useState<CategoryId>("photos");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // If the active category gets hidden from the sidebar, fall back to the
   // first one still visible rather than showing a view with no way back.
@@ -45,12 +47,13 @@ export function App() {
       </div>
 
       <main className="app__main">
-        <Toolbar onImport={() => setSettingsOpen(false)} />
+        <Toolbar onImport={() => setImportOpen(true)} />
         <div className="app__content">
-          <CategoryView key={active} id={active} onImport={() => {}} />
+          <CategoryView key={active} id={active} onImport={() => setImportOpen(true)} />
         </div>
       </main>
 
+      <ImportSheet open={importOpen} onClose={() => setImportOpen(false)} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   );

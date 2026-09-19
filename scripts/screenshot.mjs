@@ -59,5 +59,10 @@ await page.evaluate(() =>
 );
 await shot("light-developer");
 
+// Import sheet, first step.
+await withSettings({ theme: "dark" });
+await page.getByRole("button", { name: "Import", exact: true }).click();
+await shot("dark-import");
+
 await browser.close();
 await server.close();

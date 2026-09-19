@@ -14,7 +14,8 @@
 
   /* Surfaces, back to front. */
   --bg: #ffffff;
-  --bg-sunken: #f2f2f7;
+  /* Sheets sit on the grouped-table gray; cards inside them are white. */
+  --bg-sheet: #f2f2f7;
   --bg-raised: #ffffff;
   --bg-sidebar: rgba(246, 246, 248, 0.82);
   --bg-overlay: rgba(0, 0, 0, 0.28);
@@ -76,10 +77,12 @@
   --accent-soft: rgba(10, 132, 255, 0.18);
   --accent-soft-strong: rgba(10, 132, 255, 0.26);
 
-  --bg: #1c1c1e;
-  --bg-sunken: #000000;
+  /* iOS dark layers upward from black, so the sheet is lighter than the
+     window behind it rather than darker. */
+  --bg: #000000;
+  --bg-sheet: #1c1c1e;
   --bg-raised: #2c2c2e;
-  --bg-sidebar: rgba(30, 30, 32, 0.78);
+  --bg-sidebar: rgba(22, 22, 24, 0.82);
   --bg-overlay: rgba(0, 0, 0, 0.5);
   --fill-quaternary: rgba(118, 118, 128, 0.12);
   --fill-tertiary: rgba(118, 118, 128, 0.2);
